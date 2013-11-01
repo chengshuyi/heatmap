@@ -79,6 +79,9 @@ class Heatmap:
         """
         points  -> an iterable list of tuples, where the contents are the
                    x,y coordinates to plot. e.g., [(1, 1), (2, 2), (3, 3)]
+                   the tuples may contain a third value, the weight of the point
+                   the weight may be negative and must range from (-1.0 to 1.0)
+                   e.g. [(1, 1, 0.5), (2, 2, -0.2), (3, 3, 1.0)]
         dotsize -> the size of a single coordinate in the output image in
                    pixels, default is 150px.  Tweak this parameter to adjust
                    the resulting heatmap.
@@ -108,12 +111,15 @@ class Heatmap:
                 scheme, self.schemes())
             raise Exception(tmp)
 
-        arrPoints = self._convertPoints(points)
+        rawPoints = [point[0:2] for point in points]
+        weights = [point[2] if len(point)>2 else 1.0 for point in points]
+        arrPoints = self._convertPoints(rawPoints)
+        arrWeights = (ctypes.c_float * (len(weights)))(*weights)
         arrScheme = self._convertScheme(scheme)
         arrFinalImage = self._allocOutputBuffer()
 
         ret = self._heatmap.tx(
-            arrPoints, len(points) * 2, size[0], size[1], dotsize,
+            arrPoints, arrWeights, len(points) * 2, size[0], size[1], dotsize,
             arrScheme, arrFinalImage, opacity, self.override,
             ctypes.c_float(self.area[0][0]), ctypes.c_float(
                 self.area[0][1]),
@@ -122,7 +128,7 @@ class Heatmap:
         if not ret:
             raise Exception("Unexpected error during processing.")
 
-        self.img = Image.frombuffer('RGBA', (self.size[0], self.size[1]), 
+        self.img = Image.frombuffer('RGBA', (self.size[0], self.size[1]),
                                     arrFinalImage, 'raw', 'RGBA', 0, 1)
         return self.img
 
