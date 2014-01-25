@@ -167,7 +167,7 @@ class Heatmap:
         minY = points[0][1]
         maxX = minX
         maxY = minY
-        for x, y in points:
+        for x, y, weight in points:
             minX = min(x, minX)
             minY = min(y, minY)
             maxX = max(x, maxX)
